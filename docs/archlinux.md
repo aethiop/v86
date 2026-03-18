@@ -381,6 +381,30 @@ chmod +x build.sh
 
 Generated artifacts are now available for serving from `output`.
 
+### Publishing Arch blobs to GitHub/jsDelivr
+
+If you want to serve the Arch filesystem from GitHub through jsDelivr, the raw
+`images/arch/*.bin` files are usually too large to commit directly. A practical
+workflow is:
+
+```sh
+python3 tools/prepare-cdn-blobs.py \
+  --url-list images/blobs.txt \
+  --output-dir images/arch \
+  --base-fs images/fs.json \
+  --fs-out images/arch-fs.json \
+  --compress
+
+./tools/stage-cdn-assets.sh
+git commit -m "Publish Arch CDN assets"
+git push origin master
+```
+
+This produces compressed `images/arch/*.bin.zst` blobs, rewrites `fs.json` to
+`images/arch-fs.json`, and creates `images/arch/split-manifest.json` for any
+blob that still exceeds GitHub's per-file limit after compression. Point
+`baseurl` at `../images/arch/` and `basefs` at `../images/arch-fs.json`.
+
 ### Using the created artifacts in v86
 
 Now that we have everything we need to host a server that serves an Arch Linux environment over the network.

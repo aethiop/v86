@@ -41,6 +41,24 @@ Here, `basefs` is a json file created using
 [fs2json.py](tools/fs2json.py) and the `baseurl` directory is created using
 [copy-to-sha256.py](tools/copy-to-sha256.py).
 
+If the `baseurl` directory also contains a `split-manifest.json`, v86 will use
+it to reconstruct oversized blobs from multiple parts before caching them. This
+is useful when publishing filesystem blobs to GitHub and serving them through
+jsDelivr, where single files above GitHub's 100 MB limit cannot be committed as
+plain git objects.
+
+The manifest format is a JSON object where the key is the logical blob filename
+from `fs.json` and the value is an array of part filenames under `baseurl`:
+
+```json
+{
+  "1b2aa1a5.bin.zst": [
+    "1b2aa1a5.bin.zst.part.0000",
+    "1b2aa1a5.bin.zst.part.0001"
+  ]
+}
+```
+
 If `basefs` and `baseurl` are omitted, an empty 9p filesystem is created. Unless
 you configure one of the alternative modes.
 

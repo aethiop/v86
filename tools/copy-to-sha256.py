@@ -22,6 +22,18 @@ def hash_fileobj(f) -> str:
         h.update(b)
     return h.hexdigest()
 
+def copy_compressed(src_file, dst_file, zstd_module):
+    compressor = zstd_module.ZstdCompressor(level=19)
+
+    if hasattr(compressor, "copy_stream"):
+        compressor.copy_stream(src_file, dst_file)
+        return
+
+    for chunk in iter(lambda: src_file.read(128*1024), b""):
+        dst_file.write(compressor.compress(chunk))
+
+    dst_file.write(compressor.flush())
+
 def main():
     logging.basicConfig(format="%(message)s")
     logger = logging.getLogger("copy")
@@ -92,13 +104,16 @@ def handle_dir(logger, from_path: str, to_path: str, use_compression: bool, zstd
                     logger.info("Compressing {} {}".format(absname, to_abs))
                     with open(absname, 'rb') as src_file:
                         with open(to_abs, 'wb') as dst_file:
-                            zstd_module.ZstdCompressor(level=19).copy_stream(src_file, dst_file)
+                            copy_compressed(src_file, dst_file, zstd_module)
                 else:
                     logger.info("cp {} {}".format(absname, to_abs))
                     shutil.copyfile(absname, to_abs)
 
 def handle_tar(logger, tar, to_path: str, use_compression: bool, zstd_module):
     for member in tar.getmembers():
+        if member.name == ".dockerenv":
+            continue
+
         if member.isfile() or member.islnk():
             f = tar.extractfile(member)
             file_hash = hash_fileobj(f)
@@ -112,7 +127,7 @@ def handle_tar(logger, tar, to_path: str, use_compression: bool, zstd_module):
                     logger.info("Extracted and compressing {} ({})".format(to_abs, member.name))
                     f.seek(0)
                     with open(to_abs, 'wb') as dst_file:
-                        zstd_module.ZstdCompressor(level=19).copy_stream(f, dst_file)
+                        copy_compressed(f, dst_file, zstd_module)
                 else:
                     logger.info("Extracted {} ({})".format(to_abs, member.name))
                     to_file = open(to_abs, "wb")

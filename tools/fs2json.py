@@ -220,6 +220,9 @@ def handle_tar(logger, tar, use_compression):
     total_size = 0
 
     for member in tar.getmembers():
+        if member.name == ".dockerenv":
+            continue
+
         parts = member.name.split("/")
         name = parts.pop()
 

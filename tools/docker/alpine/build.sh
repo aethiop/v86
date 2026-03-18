@@ -18,7 +18,9 @@ docker create --platform linux/386 -t -i --name "$CONTAINER_NAME" "$IMAGE_NAME"
 docker export "$CONTAINER_NAME" -o "$OUT_ROOTFS_TAR"
 
 # https://github.com/iximiuz/docker-to-linux/issues/19#issuecomment-1242809707
-tar -f "$OUT_ROOTFS_TAR" --delete ".dockerenv" || true
+if command -v gtar >/dev/null 2>&1 && gtar --version 2>/dev/null | grep -q "GNU tar"; then
+    gtar -f "$OUT_ROOTFS_TAR" --delete ".dockerenv" || true
+fi
 
 ../../../tools/fs2json.py --zstd --out "$OUT_FSJSON" "$OUT_ROOTFS_TAR"
 
